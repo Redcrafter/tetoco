@@ -128,15 +128,9 @@ public class Patches {
         {
             if(Time.time - keyPressStartTime >= requiredHoldTime)
             {
-                var code = "123456789";
-                if(System.IO.File.Exists("card.txt"))
-                {
-                    code = System.IO.File.ReadAllText("card.txt");
-                }
-
                 __instance.GetType().GetProperty("Result")?.SetValue(__instance, NESiCAReader.ResultType.OK);
                 __instance.GetType().GetProperty("LastReadID")?.SetValue(__instance, "1");
-                __instance.GetType().GetProperty("LastAccCode")?.SetValue(__instance, code);
+                __instance.GetType().GetProperty("LastAccCode")?.SetValue(__instance, "123456789");
 
                 var onReadEnded = (Action<string, NESiCAReader.ResultType>)__instance
                     .GetType()
