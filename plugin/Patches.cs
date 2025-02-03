@@ -109,38 +109,14 @@ public class Patches {
         return false;
     }
 
-    static bool isKeyPressed = false;
-
-    //Patch card reader
+    // Patch card reader
     [HarmonyPatch(typeof(NESiCAReader), "Update"), HarmonyPrefix]
-    public static bool NESiCAReader_Update(NESiCAReader __instance)
+    public static bool NESiCAReader_Update(Action<string, NESiCAReader.ResultType> ___OnReadEnded)
     {
-        float keyPressStartTime = 0f;
-        const float requiredHoldTime = 0.5f;
-
-        if(UnityEngine.Input.GetKeyDown(KeyCode.Return))
+        if(UnityEngine.Input.GetKey(KeyCode.Return))
         {
-            isKeyPressed = true;
-            keyPressStartTime = Time.time;
+            ___OnReadEnded?.Invoke("1", NESiCAReader.ResultType.OK);
         }
-
-        if(isKeyPressed && UnityEngine.Input.GetKey(KeyCode.Return))
-        {
-            if(Time.time - keyPressStartTime >= requiredHoldTime)
-            {
-                __instance.GetType().GetProperty("Result")?.SetValue(__instance, NESiCAReader.ResultType.OK);
-                __instance.GetType().GetProperty("LastReadID")?.SetValue(__instance, "1");
-                __instance.GetType().GetProperty("LastAccCode")?.SetValue(__instance, "123456789");
-
-                var onReadEnded = (Action<string, NESiCAReader.ResultType>)__instance
-                    .GetType()
-                    .GetField("OnReadEnded", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                    ?.GetValue(__instance);
-
-                onReadEnded?.Invoke("1", NESiCAReader.ResultType.OK);
-                isKeyPressed = false;
-            }
-        }
-            return false;
+        return false;
     }
 }
