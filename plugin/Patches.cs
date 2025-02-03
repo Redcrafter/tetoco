@@ -4,6 +4,7 @@ using Lod.Dialog;
 using Lod.ImageRecognition;
 using Lod.Net;
 using Lod.TypeX4;
+using System;
 using UnityEngine;
 using VisionUSBIO;
 
@@ -96,12 +97,6 @@ public class Patches {
     }
     #endregion
 
-    [HarmonyPatch(typeof(UIEntryController), "Login"), HarmonyPrefix]
-    public static bool Login(ref string nesicaOriginalCardId) {
-        nesicaOriginalCardId = "1234567890"; // fake card id
-        return true;
-    }
-
     [HarmonyPatch(typeof(AeroBootCheck), "CheckAndReset"), HarmonyPrefix]
     public static bool CheckAndReset(ref bool __result) {
         __result = false;
@@ -112,5 +107,46 @@ public class Patches {
     public static bool GetKeyDown(ref bool __result, KeyCode key) {
         __result = UnityEngine.Input.GetKeyDown(key);
         return false;
+    }
+
+    static bool isKeyPressed = false;
+
+    //Patch card reader
+    [HarmonyPatch(typeof(NESiCAReader), "Update"), HarmonyPrefix]
+    public static bool NESiCAReader_Update(NESiCAReader __instance)
+    {
+        float keyPressStartTime = 0f;
+        const float requiredHoldTime = 0.5f;
+
+        if(UnityEngine.Input.GetKeyDown(KeyCode.Return))
+        {
+            isKeyPressed = true;
+            keyPressStartTime = Time.time;
+        }
+
+        if(isKeyPressed && UnityEngine.Input.GetKey(KeyCode.Return))
+        {
+            if(Time.time - keyPressStartTime >= requiredHoldTime)
+            {
+                var code = "123456789";
+                if(System.IO.File.Exists("card.txt"))
+                {
+                    code = System.IO.File.ReadAllText("card.txt");
+                }
+
+                __instance.GetType().GetProperty("Result")?.SetValue(__instance, NESiCAReader.ResultType.OK);
+                __instance.GetType().GetProperty("LastReadID")?.SetValue(__instance, "1");
+                __instance.GetType().GetProperty("LastAccCode")?.SetValue(__instance, code);
+
+                var onReadEnded = (Action<string, NESiCAReader.ResultType>)__instance
+                    .GetType()
+                    .GetField("OnReadEnded", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    ?.GetValue(__instance);
+
+                onReadEnded?.Invoke("1", NESiCAReader.ResultType.OK);
+                isKeyPressed = false;
+            }
+        }
+            return false;
     }
 }
