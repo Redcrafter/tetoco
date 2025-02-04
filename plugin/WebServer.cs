@@ -1,4 +1,4 @@
-﻿using BepInEx.Logging;
+using BepInEx.Logging;
 using Lod;
 using System;
 using System.Collections.Generic;
@@ -99,7 +99,9 @@ public class WebServer {
         saveData.shopPreviewHistoryData = diff.shopPreviewHistoryData;
         saveData.reactionHistoryData = diff.reactionHistoryData;
         saveData.outgameTutorialHistoryData = diff.outgameTutorialHistoryData;
-        saveData.musicRecordData.records = saveData.musicRecordData.records.Union(diff.musicRecordData.records).ToDictionary(x => x.Key, x => x.Value);
+
+        foreach(var item in diff.musicRecordData.records)
+            saveData.musicRecordData.records[item.Key] = item.Value;
         saveData.musicRecordData.multiBonusCount = diff.musicRecordData.multiBonusCount;
 
         Apply(ref saveData.partnerData.partners, diff.partnerData.partners, x => x.characterInfoId);
