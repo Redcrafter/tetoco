@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Lod;
 using Lod.Dialog;
 using Lod.ImageRecognition;
@@ -96,12 +96,6 @@ public class Patches {
     }
     #endregion
 
-    [HarmonyPatch(typeof(UIEntryController), "Login"), HarmonyPrefix]
-    public static bool Login(ref string nesicaOriginalCardId) {
-        nesicaOriginalCardId = "1234567890"; // fake card id
-        return true;
-    }
-
     [HarmonyPatch(typeof(AeroBootCheck), "CheckAndReset"), HarmonyPrefix]
     public static bool CheckAndReset(ref bool __result) {
         __result = false;
@@ -112,5 +106,32 @@ public class Patches {
     public static bool GetKeyDown(ref bool __result, KeyCode key) {
         __result = UnityEngine.Input.GetKeyDown(key);
         return false;
+    }
+
+    [HarmonyPatch(typeof(UIEntryController), "Update"), HarmonyPrefix]
+    public static void UIEntryController_Update(UIEntryController __instance) {
+        if(GameObject.Find("GuestLoginButton(Clone)") != null) return;
+
+        var button = GameObject.Find("GuestLoginButton"); // make copy
+        if(button == null) return;
+        var copy = Object.Instantiate(button);
+        copy.transform.SetParent(button.transform.parent, false);
+
+        var pos = button.transform.localPosition;
+        button.transform.localPosition = new Vector3(-183, pos.y, pos.z);
+        copy.transform.localPosition = new Vector3(183, pos.y, pos.z);
+
+        var text = copy.GetComponentInChildren<UIText>();
+        text.textId = "";
+        text.text = "Login as\nLocal";
+
+        var btn = copy.GetComponent<UIButton>();
+        btn.interactable = true;
+
+        btn.onClick.RemoveAllListeners();
+        btn.onClick.AddListener(() => {
+            var login = __instance.GetType().GetMethod("Login", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            login.Invoke(__instance, ["1234567890"]);
+        });
     }
 }
