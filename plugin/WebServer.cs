@@ -27,65 +27,74 @@ public class WebServer {
         while(true) {
             var ctx = await listener.GetContextAsync();
             logger.LogInfo($"{ctx.Request.HttpMethod} {ctx.Request.Url}");
-            
-            string body = null;
-            // Logger.LogInfo(ctx.Request.Headers);
-            if(ctx.Request.HasEntityBody) {
-                using var reader = new StreamReader(ctx.Request.InputStream);
-                body = reader.ReadToEnd();
-                logger.LogInfo(body);
+
+            try {
+                var res = Handle(ctx);
+
+                ctx.Response.StatusCode = 200;
+                if(res != null) {
+                    var json = JsonSerializer.Serialize(res);
+                    ctx.Response.ContentType = "application/json";
+                    ctx.Response.ContentLength64 = json.Length;
+                    ctx.Response.OutputStream.Write(json, 0, json.Length);
+                }
+            } catch(Exception e) {
+                logger.LogError(e);
+                ctx.Response.StatusCode = 500;
             }
-
-            ctx.Response.StatusCode = 200;
-
-            if(ctx.Request.Url.AbsolutePath == "/env") { }
-
-            if(ctx.Request.Url.AbsolutePath == "/ngwords") {
-                // var param = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.NGWords.Param>(body);
-                SendObj(ctx, new Lod.Net.GameServerRequests.NGWords.Response { result = true });
-            }
-
-            if(ctx.Request.Url.AbsolutePath == "/login") {
-                Load(); // have to delay load to here cause InitForNESiCA would throw errors
-
-                SendObj(ctx, new Lod.Net.GameServerRequests.Login.Response {
-                    accessToken = "1234567890",
-                    tokenType = "",
-                    expiresIn = 9999999
-                });
-            }
-
-            if(ctx.Request.HttpMethod == "GET" && ctx.Request.Url.AbsolutePath == "/savedata") {
-                // var auth = ctx.Request.Headers.Get("Authorization"); // for real server use auth to get correct save
-                SendObj(ctx, new Lod.Net.GameServerRequests.LoadPlayerSaveData.Response { savedata = saveData });
-            }
-
-            if(ctx.Request.HttpMethod == "POST" && ctx.Request.Url.AbsolutePath == "/savedata" && body != null) {
-                var data = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.SaveData.Param>(body);
-                ApplyDiff(data.savedata);
-            }
-            if(ctx.Request.HttpMethod == "POST" && ctx.Request.Url.AbsolutePath == "/game/end" && body != null) {
-                var data = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.Game_End.Param>(body);
-                ApplyDiff(data.savedata);
-
-                File.AppendAllLines("results.txt", [
-                    DateTime.Now.ToString("o"),
-                    JsonSerializer.ToJsonString(data.result),
-                    JsonSerializer.ToJsonString(data.notelogs),
-                ]);
-            }
-
             ctx.Response.Close();
         }
     }
 
-    private void SendObj<T>(HttpListenerContext ctx, T obj) {
-        ctx.Response.StatusCode = 200;
+    private object Handle(HttpListenerContext ctx) {
+        string body = null;
+        // Logger.LogInfo(ctx.Request.Headers);
+        if(ctx.Request.HasEntityBody) {
+            using var reader = new StreamReader(ctx.Request.InputStream);
+            body = reader.ReadToEnd();
+            logger.LogInfo(body);
+        }
 
-        var json = JsonSerializer.Serialize(obj);
-        ctx.Response.ContentType = "application/json";
-        ctx.Response.ContentLength64 = json.Length;
-        ctx.Response.OutputStream.Write(json, 0, json.Length);
+        var m = ctx.Request.HttpMethod;
+        var p = ctx.Request.Url.AbsolutePath;
+
+        if(m == "GET" && p == "/env") { }
+        if(m == "GET" && p == "/ngwords") {
+            // var param = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.NGWords.Param>(body);
+            return new Lod.Net.GameServerRequests.NGWords.Response { result = true };
+        }
+
+        if(m == "POST" && p == "/login") {
+            Load(); // have to delay load to here cause InitForNESiCA would throw errors
+
+            return new Lod.Net.GameServerRequests.Login.Response {
+                accessToken = "1234567890",
+                tokenType = "",
+                expiresIn = 9999999
+            };
+        }
+
+        if(m == "GET" && p == "/savedata") {
+            // var auth = ctx.Request.Headers.Get("Authorization"); // for real server use auth to get correct save
+            return new Lod.Net.GameServerRequests.LoadPlayerSaveData.Response { savedata = saveData };
+        }
+
+        if(m == "POST" && p == "/savedata" && body != null) {
+            var data = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.SaveData.Param>(body);
+            ApplyDiff(data.savedata);
+        }
+        if(m == "POST" && p == "/game/end" && body != null) {
+            var data = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.Game_End.Param>(body);
+            ApplyDiff(data.savedata);
+
+            File.AppendAllLines("results.txt", [
+                DateTime.Now.ToString("o"),
+                    JsonSerializer.ToJsonString(data.result),
+                    JsonSerializer.ToJsonString(data.notelogs),
+                ]);
+        }
+
+        return null;
     }
 
     private void ApplyDiff(PlayerSaveData diff) {
