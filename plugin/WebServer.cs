@@ -59,7 +59,7 @@ public class WebServer {
         var p = ctx.Request.Url.AbsolutePath;
 
         if(m == "GET" && p == "/env") { }
-        if(m == "GET" && p == "/ngwords") {
+        if(m == "POST" && p == "/ngwords") {
             // var param = JsonSerializer.Deserialize<Lod.Net.GameServerRequests.NGWords.Param>(body);
             return new Lod.Net.GameServerRequests.NGWords.Response { result = true };
         }
