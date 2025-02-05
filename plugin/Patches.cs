@@ -44,7 +44,11 @@ public class Patches {
 
     [HarmonyPatch(typeof(GameServer), "DebugGetEndpointUrl", MethodType.Getter), HarmonyPrefix]
     public static bool DebugGetEndpointUrl(ref string __result) {
-        __result = "http://localhost:8080";
+        if(Plugin.useLocalServer.Value) {
+            __result = "http://localhost:38817";
+        } else {
+            __result = Plugin.remoteServer.Value;
+        }
         return false;
     }
 
@@ -133,7 +137,7 @@ public class Patches {
         btn.onClick.RemoveAllListeners();
         btn.onClick.AddListener(() => {
             var login = __instance.GetType().GetMethod("Login", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            login.Invoke(__instance, ["1234567890"]);
+            login.Invoke(__instance, [Plugin.useLocalServer.Value ? "1234567890" : Plugin.cardId.Value]);
         });
     }
 
