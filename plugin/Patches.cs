@@ -1,4 +1,4 @@
-using HarmonyLib;
+﻿using HarmonyLib;
 using Lod;
 using Lod.Dialog;
 using Lod.ImageRecognition;
@@ -110,10 +110,12 @@ public class Patches {
 
     [HarmonyPatch(typeof(UIEntryController), "Update"), HarmonyPrefix]
     public static void UIEntryController_Update(UIEntryController __instance) {
-        if(GameObject.Find("GuestLoginButton(Clone)") != null) return;
+        if(GameObject.Find("GuestLoginButton(Clone)") != null)
+            return;
 
         var button = GameObject.Find("GuestLoginButton"); // make copy
-        if(button == null) return;
+        if(button == null)
+            return;
         var copy = Object.Instantiate(button);
         copy.transform.SetParent(button.transform.parent, false);
 
@@ -133,5 +135,11 @@ public class Patches {
             var login = __instance.GetType().GetMethod("Login", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             login.Invoke(__instance, ["1234567890"]);
         });
+    }
+
+    [HarmonyPatch(typeof(StageInfo), "CheckPermission"), HarmonyPrefix]
+    public static bool CheckPermission(ref bool __result) {
+        __result = true;
+        return false;
     }
 }
