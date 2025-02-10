@@ -134,7 +134,7 @@ public class Patches {
         var btn = copy.GetComponent<UIButton>();
         btn.interactable = true;
 
-        btn.onClick.RemoveAllListeners();
+        btn.onClick.m_PersistentCalls.Clear();
         btn.onClick.AddListener(() => {
             var login = __instance.GetType().GetMethod("Login", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             login.Invoke(__instance, [Plugin.useLocalServer.Value ? "1234567890" : Plugin.cardId.Value]);
