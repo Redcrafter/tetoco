@@ -142,7 +142,7 @@ public class WebServer {
         } else {
             saveData = new PlayerSaveData();
             saveData.InitForNESiCA();
-            saveData.playerData.playerName = "Player";
+            saveData.playerData.playerName = ""; // empty for first login
             Save();
         }
     }
