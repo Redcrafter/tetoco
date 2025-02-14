@@ -4,6 +4,7 @@ using Lod.Dialog;
 using Lod.ImageRecognition;
 using Lod.Net;
 using Lod.TypeX4;
+using System.Collections.Generic;
 using UnityEngine;
 using VisionUSBIO;
 
@@ -146,4 +147,69 @@ public class Patches {
         __result = true;
         return false;
     }
+
+    #region Hatsune Miku Partner Unlock
+    [HarmonyPatch(typeof(PartnerUtil), "CanUse", typeof(Lod.CharacterInfo)), HarmonyPrefix]
+    public static bool CanUse(ref bool __result) {
+        __result = true;
+        return false;
+    }
+
+    [HarmonyPatch(typeof(PartnerUtil), "HasDearness", typeof(Lod.CharacterInfo)), HarmonyPrefix]
+    public static bool HasDearness(ref bool __result) {
+        __result = true;
+        return false;
+    }
+
+    [HarmonyPatch(typeof(UIEntryController), "GoToNextScene"), HarmonyPostfix]
+    public static void GoToNextScene(UIEntryController __instance) {
+        GameInstance.Instance.ActiveCharacterInfos = CharacterMaster.GetInstance().SortedAllCharacterInfos;
+    }
+
+    [HarmonyPatch(typeof(PartnerSelectController), "Start"), HarmonyPrefix]
+    public static bool PartnerSelectController_Start(ref PartnerSelectCharaIcon[] ___charaButtonList, ref List<PartnerSelectController.DearnessGauge> ___dearnessGauge) {
+        { // character icon
+            var button = GameObject.Find("ButtonSet/CHR_C_02");
+            var copy = Object.Instantiate(button);
+    
+            copy.transform.SetParent(button.transform.parent, false);
+            copy.transform.localPosition = new Vector3(50, -145, 0);
+    
+            var comp = copy.GetComponent<PartnerSelectCharaIcon>();
+            typeof(PartnerSelectCharaIcon).GetField("CharacterIndex", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(comp, 10);
+            ___charaButtonList = ___charaButtonList.AddToArray(comp);
+        }
+        
+        { // dearness display
+            var el = GameObject.Find("DearnessVisibleControlObject").transform.Find("CHR_C_02").gameObject;
+            var copy = Object.Instantiate(el);
+
+            copy.transform.SetParent(el.transform.parent, false);
+            ___dearnessGauge.Add(new PartnerSelectController.DearnessGauge {
+                root = copy,
+                heart = copy.GetComponentInChildren<UnityEngine.UI.Slider>(),
+                level = copy.transform.Find("DearDegreeLevelText").gameObject.GetComponent<UIText>()
+            });
+        }
+    
+        return true;
+    }
+
+    [HarmonyPatch(typeof(PartnerSelectCharaIcon), "InitCharaIcons"), HarmonyPrefix]
+    public static bool InitCharaIcons(ref PartnerSelectCharaIcon __instance, UIImage ____charaIconOn, UIImage ____charaIconOff) {
+        if(____charaIconOn == null || ____charaIconOff == null) return false;
+
+        var regularCharacterInfos = CharacterMaster.GetInstance().SortedAllCharacterInfos;
+        var characterInfo = regularCharacterInfos[__instance.myIndex];
+        __instance.gameObject.SetActive(true);
+
+        // if(GameInstance.Instance.CollaborationManager.ActiveCollaborationInfo != null && characterInfo.id == GameInstance.Instance.CollaborationManager.ActiveCollaborationInfo.CharacterId && __instance.gameObject.name != "Button_Collaboration")
+        //    __instance.gameObject.SetActive(false);
+
+        ____charaIconOn.Init(string.Format(characterInfo.partnerSelectIconAssetPath, "ON"));
+        ____charaIconOff.Init(string.Format(characterInfo.partnerSelectIconAssetPath, "OFF"));
+
+        return false;
+    }
+    #endregion
 }

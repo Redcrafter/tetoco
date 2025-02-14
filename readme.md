@@ -7,6 +7,7 @@ This project is a BepInEx 5 plugin designed to restore functionality to **Tetote
 - Unlocks test mode (press T in game)
 - Removes menu timeouts
 - Unlocks all songs
+- Makes Hatsune Mikue playable
 
 ## Installation
 - Download [BepInEx](https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x64_5.4.23.2.zip) and extract the contents into the game root.
